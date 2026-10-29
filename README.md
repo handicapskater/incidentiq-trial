@@ -30,7 +30,7 @@ LLAMA_URL=http://127.0.0.1:8082 .venv/bin/uvicorn incidentiq.api:app --host 127.
 
 The measured evaluation used port 8082 and the same GGUF file as Docker. Host llama.cpp reported Apple M1 Max Metal and averaged 1.22 seconds per evaluation case; that result does not represent Docker CPU performance.
 
-To run the existing Docker API and Streamlit UI images against the host Metal server, bind `llama-server` to `0.0.0.0` on port 8082, then run:
+To run the existing Docker API and Streamlit UI images against the host Metal server, bind `llama-server` to `127.0.0.1` on port 8082, then run:
 
 ```sh
 docker compose build ui
@@ -39,6 +39,16 @@ curl http://localhost:8000/ready
 ```
 
 The UI image checks that `incidentiq.ui` imports outside its working directory during build. The UI's `API_URL` remains `http://api:8000` inside Compose, and the API's `LLAMA_URL` points to host Metal only when `INCIDENTIQ_LOCAL_LLAMA_URL` is set. The API logs retrieved document and chunk IDs, selected specialist, prompt evidence chunk IDs, and validated citations. The prompt itself is not logged.
+
+The local Compose ports bind only to `127.0.0.1`. To enable the optional demo API key, put `INCIDENTIQ_API_KEY` in the ignored `.env` file or the shell environment before starting Compose. Streamlit sends it from its server process in the `X-IncidentIQ-Key` header; the browser does not receive it. This shared application key does not isolate individual users or provide distributed rate limiting. The cloud services remain without an API key until both services can be configured with the same secret through a server-side mechanism.
+
+`GET /version` reports the configured Git SHA and provider; the deployment script sets the SHA for Cloud Run. `/ready` checks dependencies without generating text. Run a separate inference check when needed:
+
+```sh
+.venv/bin/python -m scripts.smoke_inference --question 'What caused INC-1042?'
+```
+
+Llama questions are limited to four subquestions, at most four LLM calls, and 256 generated tokens per call. API analysis has a 110-second response deadline and two process-local execution slots. The no-ID retrieval relevance boundary was calibrated on bundled positive and unrelated queries; named incidents still require matching IDs and topical support. These bounds are for the interview demo, not distributed access control.
 
 The graph exposes only `incident_retrieval` as a tool. Shell, arbitrary file, and network tools are not registered; model output requesting a tool is rejected. Citation validation checks returned chunk IDs against retrieved evidence.
 

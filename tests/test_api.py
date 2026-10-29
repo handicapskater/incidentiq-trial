@@ -157,3 +157,64 @@ def test_graph_failure_is_controlled(client):
     result = test_client.post("/ask", json={"question": "What happened?", "thread_id": "abc"})
     assert result.status_code == 503
     assert "secret" not in str(result.json())
+
+
+def test_invalid_input_is_rejected_before_dependency_probe(monkeypatch):
+    from incidentiq import api
+
+    calls = []
+    monkeypatch.setattr(api, "_build_graph", lambda: StubGraph())
+    monkeypatch.setattr(api, "_check_dependencies", lambda: calls.append("probed"))
+    with TestClient(app) as test_client:
+        assert test_client.post("/ask", json={"question": "   ", "thread_id": "x"}).status_code == 422
+        assert test_client.post("/ask", json={"question": "what a, what b, what c, what d, what e", "thread_id": "x"}).status_code == 422
+    assert calls == []
+
+
+def test_optional_api_key_protects_ask_but_not_health(client, monkeypatch):
+    test_client, graph = client
+    monkeypatch.setenv("INCIDENTIQ_API_KEY", "demo-test-key")
+    body = {"question": "What happened?", "thread_id": "auth-test"}
+    assert test_client.get("/health").status_code == 200
+    assert test_client.post("/ask", json=body).status_code == 401
+    assert test_client.post("/ask", json=body, headers={"X-IncidentIQ-Key": "wrong"}).status_code == 401
+    assert test_client.post("/ask", json=body, headers={"X-IncidentIQ-Key": "demo-test-key"}).status_code == 200
+    assert len(graph.calls) == 1
+
+
+def test_version_reports_configured_commit_without_graph(monkeypatch):
+    monkeypatch.setenv("GIT_COMMIT_SHA", "abc123")
+    monkeypatch.setenv("MODEL_PROVIDER", "llama")
+    with TestClient(app) as test_client:
+        assert test_client.get("/version").json() == {"git_commit_sha": "abc123", "model_provider": "llama"}
+
+
+def test_process_local_concurrency_limit_returns_429(client):
+    from incidentiq import api
+
+    test_client, graph = client
+    assert api._INFERENCE_SLOTS.acquire(blocking=False)
+    assert api._INFERENCE_SLOTS.acquire(blocking=False)
+    try:
+        response = test_client.post("/ask", json={"question": "What happened?", "thread_id": "busy"})
+        assert response.status_code == 429
+        assert graph.calls == []
+    finally:
+        api._INFERENCE_SLOTS.release()
+        api._INFERENCE_SLOTS.release()
+
+
+def test_analysis_deadline_returns_controlled_504(client, monkeypatch):
+    import asyncio
+
+    test_client, _ = client
+    monkeypatch.setenv("REQUEST_DEADLINE_SECONDS", "1")
+
+    class SlowGraph:
+        async def ainvoke(self, inputs, config):
+            await asyncio.sleep(2)
+
+    app.dependency_overrides[get_graph] = SlowGraph
+    result = test_client.post("/ask", json={"question": "What happened?", "thread_id": "deadline"})
+    assert result.status_code == 504
+    assert result.json() == {"detail": "Incident analysis deadline exceeded."}

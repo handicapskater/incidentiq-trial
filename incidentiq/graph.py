@@ -17,6 +17,7 @@ from incidentiq.agents.routing import select_specialist
 from incidentiq.agents.tools import invoke_tool
 from incidentiq.config import Settings
 from incidentiq.inference import InferenceProvider, get_provider
+from incidentiq.retrieval import evidence_is_sufficient
 from incidentiq.schemas import AgentState, RetrievedEvidence
 
 
@@ -39,7 +40,8 @@ def build_graph(
 ):
     """Compile the workflow; retain the returned graph for thread memory."""
     active_retriever = retriever or default_retriever
-    active_provider = provider or get_provider(settings)
+    active_settings = settings or Settings()
+    active_provider = provider or get_provider(active_settings)
 
     def prepare(state: WorkflowState, config: RunnableConfig) -> dict[str, Any]:
         thread_id = config.get("configurable", {}).get("thread_id")
@@ -84,6 +86,9 @@ def build_graph(
         evidence = invoke_tool("incident_retrieval", query, active_retriever)
         logger.info("retrieval query=%r evidence=%s", query,
                     [(item.document_id, item.chunk_id) for item in evidence])
+        if not evidence_is_sufficient(query, evidence):
+            logger.info("retrieval evidence insufficient for query=%r", query)
+            evidence = []
         return {"evidence": evidence,
                 "stage": "analyze", "specialist_trace": [*state.get("specialist_trace", []), "retrieval"]}
 
@@ -93,7 +98,7 @@ def build_graph(
             logger.info("specialist=%s evidence_chunks=%s", name, [item.chunk_id for item in evidence])
             answer, citations, abstained = analyze_incident(
                 state["question"], evidence, list(state.get("messages", []))[:-1], active_provider,
-                specialist=name,
+                specialist=name, deadline_at=state["started_at"] + active_settings.REQUEST_DEADLINE_SECONDS,
             )
             return {"answer": answer, "citations": citations, "abstained": abstained,
                     "stage": "validate", "specialist_trace": [*state.get("specialist_trace", []), name]}

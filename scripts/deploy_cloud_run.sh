@@ -39,7 +39,7 @@ gcloud run deploy incidentiq-trial-api \
   --project "$project" --region "$region" --platform managed \
   --image "$api_image" --port 8000 --service-account "$service_account" \
   --memory 4Gi --cpu 2 --concurrency 1 --max-instances 1 --timeout 300 \
-  --set-env-vars "MODEL_PROVIDER=gemini,GCP_PROJECT=${project},GCP_LOCATION=${region},VERTEX_LOCATION=${vertex_location},GEMINI_MODEL=${gemini_model},CHROMA_PATH=/app/data/chroma,DATA_DIR=/app/data" \
+  --set-env-vars "MODEL_PROVIDER=gemini,GCP_PROJECT=${project},GCP_LOCATION=${region},VERTEX_LOCATION=${vertex_location},GEMINI_MODEL=${gemini_model},CHROMA_PATH=/app/data/chroma,DATA_DIR=/app/data,GIT_COMMIT_SHA=${revision}" \
   --allow-unauthenticated
 
 api_url="$(gcloud run services describe incidentiq-trial-api --project "$project" --region "$region" --format 'value(status.url)')"

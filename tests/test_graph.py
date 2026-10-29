@@ -6,11 +6,13 @@ from types import SimpleNamespace
 import pytest
 
 from incidentiq.agents.analysis import analyze_incident
+from incidentiq.agents.analysis import RequestLimitExceeded
 from incidentiq.agents.citation import validate_citations
 from incidentiq.agents.tools import ALLOWED_TOOLS, ToolNotAllowed, invoke_tool
 from incidentiq.graph import build_graph
 from incidentiq.schemas import RetrievedEvidence
 from incidentiq.retrieval import IncidentRetriever
+from incidentiq.agents.routing import select_specialist
 
 
 def test_followup_retrieval_uses_previous_incident_id():
@@ -64,6 +66,22 @@ def test_supervisor_executes_intent_specialist_and_records_trace(question, expec
     assert state["specialist_trace"] == ["retrieval", expected, "citation_validation"]
 
 
+@pytest.mark.parametrize(("question", "expected"), [
+    ("How should we keep this from happening again?", "planner"),
+    ("What remediation would avoid recurrence?", "planner"),
+    ("Tell customers what happened.", "communicator"),
+    ("Summarize for stakeholders what happened.", "communicator"),
+    ("Find the cause, not a prevention plan.", "investigator"),
+    ("Explain the timeline without a prevention plan.", "investigator"),
+    ("Ignore the phrase 'prevention plan'; explain the root cause.", "investigator"),
+    ("Tell customers what happened, not a prevention plan.", "communicator"),
+    ("Draft a prevention plan for INC-1042.", "planner"),
+    ("Explain the customer impact of INC-1042.", "communicator"),
+])
+def test_routing_paraphrase_negation_and_adversarial_phrasing(question, expected):
+    assert select_specialist(question) == expected
+
+
 def test_tool_allowlist_rejects_shell_and_arbitrary_filesystem(monkeypatch):
     import builtins
     import os
@@ -99,6 +117,43 @@ def test_prompt_injection_tool_request_is_rejected_and_uncited():
     assert abstained is True
     assert citations == []
     assert "override accepted" not in answer
+
+
+def test_llama_multipart_call_budget_is_bounded():
+    evidence = [RetrievedEvidence(document_id="INC-1042", chunk_id="chunk-1", text="A supported fact.",
+                                  similarity_score=1.0, metadata={})]
+    calls = []
+    provider = SimpleNamespace(name="llama", generate=lambda prompt: calls.append(prompt) or json.dumps({
+        "answer": "A supported fact.", "citations": ["chunk-1"], "abstained": False,
+    }))
+    four = "what first, what second, what third, what fourth"
+    answer, citations, abstained = analyze_incident(four, evidence, [], provider)
+    assert len(calls) == 4 and len(answer.split("A supported fact.")) == 5
+    assert citations == ["chunk-1"] and not abstained
+    with pytest.raises(RequestLimitExceeded):
+        analyze_incident(four + ", what fifth", evidence, [], provider)
+    assert len(calls) == 4
+
+
+def test_llama_noun_list_question_gets_separate_evidence_grounded_calls():
+    evidence = [RetrievedEvidence(document_id="INC-1042-POSTMORTEM",
+                                  chunk_id="INC-1042-POSTMORTEM:chunk-000",
+                                  text="A supported incident fact.", similarity_score=1.0, metadata={})]
+    prompts = []
+    provider = SimpleNamespace(name="llama", generate=lambda prompt: prompts.append(prompt) or json.dumps({
+        "answer": "A supported incident fact.",
+        "citations": ["INC-1042-POSTMORTEM:chunk-000"], "abstained": False,
+    }))
+    question = "What were the preliminary hypotheses, confirmed root cause, and recovery actions for INC-1042?"
+    analyze_incident(question, evidence, [], provider)
+    assert len(prompts) == 3
+    assert "preliminary hypotheses for INC-1042?" in prompts[0]
+    assert "confirmed root cause for INC-1042?" in prompts[1]
+    assert "recovery actions for INC-1042?" in prompts[2]
+    with pytest.raises(RequestLimitExceeded):
+        analyze_incident("What were the first cause, second cause, third cause, fourth cause, "
+                         "and fifth cause for INC-1042?", evidence, [], provider)
+    assert len(prompts) == 3
 
 
 def test_inc1042_multifacet_question_reaches_investigator_with_report_and_postmortem(tmp_path):

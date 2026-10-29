@@ -11,7 +11,9 @@ from incidentiq.schemas import IncidentRequest, IncidentResponse
 
 def _ask(api_url: str, request: IncidentRequest) -> IncidentResponse:
     with httpx.Client(timeout=120.0) as client:
-        response = client.post(f"{api_url.rstrip('/')}/ask", json=request.model_dump())
+        key = Settings().INCIDENTIQ_API_KEY
+        headers = {"X-IncidentIQ-Key": key} if key else {}
+        response = client.post(f"{api_url.rstrip('/')}/ask", json=request.model_dump(), headers=headers)
         response.raise_for_status()
         return IncidentResponse.model_validate(response.json())
 

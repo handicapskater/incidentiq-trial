@@ -10,6 +10,7 @@ steps:
     args:
       - build
       - --platform=linux/amd64
+      - --build-arg=GIT_COMMIT_SHA=${_TAG}
       - -f
       - Dockerfile.cloud
       - --target=api
@@ -20,6 +21,7 @@ steps:
     args:
       - build
       - --platform=linux/amd64
+      - --build-arg=GIT_COMMIT_SHA=${_TAG}
       - -f
       - Dockerfile.ui
       - -t

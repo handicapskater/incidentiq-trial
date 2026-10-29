@@ -73,7 +73,10 @@ def score(cases: list[dict[str, Any]], predictions: dict[str, dict[str, Any]]) -
     unknown = set(predictions) - allowed_ids
     if unknown:
         raise ValueError(f"Unknown prediction case IDs: {sorted(unknown)}")
-    metrics: dict[str, list[bool]] = {name: [] for name in ("answer_accuracy", "retrieval_accuracy", "citation_validity", "abstention", "routing", "memory")}
+    metrics: dict[str, list[bool]] = {name: [] for name in (
+        "answer_accuracy", "retrieval_accuracy", "citation_id_validity", "citation_validity",
+        "abstention", "routing", "memory"
+    )}
     latencies: list[float] = []
     errors: list[dict[str, str]] = []
     details: list[dict[str, Any]] = []
@@ -101,7 +104,8 @@ def score(cases: list[dict[str, Any]], predictions: dict[str, dict[str, Any]]) -
             result.update(
                 answer_accuracy=bool(answer_ok),
                 retrieval_accuracy=expected <= available if expected else not available,
-                citation_validity=bool(citation_ok),
+                citation_id_validity=bool(citation_ok),
+                citation_validity=bool(citation_ok),  # Compatibility alias; not claim-level grounding.
                 abstention=response.abstained == case["abstain"],
                 routing=(response.specialist_route == case["expected_route"]
                          and ("specialist_trace" not in record
@@ -118,7 +122,9 @@ def score(cases: list[dict[str, Any]], predictions: dict[str, dict[str, Any]]) -
             latencies.append(response.latency_ms)
         except (KeyError, TypeError, ValueError) as exc:
             errors.append({"case_id": case_id, "error": str(exc)})
-            result.update(answer_accuracy=False, retrieval_accuracy=False, citation_validity=False, abstention=False, routing=False)
+            result.update(answer_accuracy=False, retrieval_accuracy=False,
+                          citation_id_validity=False, citation_validity=False,
+                          abstention=False, routing=False)
             if "depends_on" in case:
                 result["memory"] = False
         for name in metrics:

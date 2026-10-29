@@ -16,3 +16,6 @@ class Settings(BaseSettings):
     VERTEX_LOCATION: str = "global"
     GEMINI_MODEL: str = "gemini-3.5-flash-lite"
     API_URL: str = "http://localhost:8000"
+    INCIDENTIQ_API_KEY: str = ""
+    REQUEST_DEADLINE_SECONDS: int = 110
+    GIT_COMMIT_SHA: str = "unknown"

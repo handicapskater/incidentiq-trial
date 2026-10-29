@@ -11,6 +11,8 @@ IncidentIQ deploys two public Cloud Run services in project `handicapskater-gcp`
 
 Both services reported Ready and 100% traffic on these revisions. Cloud Build `e0ab25ed-d6ad-41b6-92f0-c66845d03dbd` built the images from Git commit `6546d1d28b380b757c432c07f6bb5c044d850fcd`; the build log confirmed 20 documents and 31 Chroma chunks. The API service identity is `incidentiq-trial-api@handicapskater-gcp.iam.gserviceaccount.com` with `roles/aiplatform.user`.
 
+The current Cloud API and UI images still use commit tag `6546d1d28b38`. Local demo hardening after that tag is **not deployed**. The next deployment will inject its commit SHA into the API environment and image metadata. Verify `GET /version` returns that SHA, and compare it with the intended GitHub commit and Cloud Run revision before claiming the new release is live. `/health` and `/ready` do not generate an answer; run `python -m scripts.smoke_inference --api-url "$API_URL" --question 'What caused INC-1042?'` separately when deployment is authorized.
+
 The UI revision was updated on 2026-10-29 to set `PYTHONPATH=/app` because the prior image's Streamlit script could not import `incidentiq` from its script directory. The new UI revision retains its `API_URL` pointing to the Cloud Run API. The repository's `Dockerfile.ui` now embeds the package path and checks import during build. The UI revision still uses the original image digest; the environment update fixes the running configuration.
 
 Actual public HTTP checks returned 200 for API `/health`, `/ready`, and `/ask`, plus UI `/` and `/_stcore/health`. The UI revision's `API_URL` points to the public API URL, which also returned 200 for `/ready`. The first live `/ask` call answered the final cause of INC-1042 using Vertex Gemini and cited `INC-1042-POSTMORTEM:chunk-000`; its reported latency was 39,020 ms during cold startup. A separate six-request Cloud Run HTTP smoke evaluation returned 6/6 HTTP 200, 5/5 expected specialist routes for supported questions, 5/5 expected postmortem citations, and correct abstention for an unsupported incident. The same-thread follow-up answered the INC-1042 recovery question. Five supported request wall times averaged 1,106 ms after warm-up; the first cold request is excluded from that warm figure. See `verification/cloud_http_report.json` for full responses and per-request timings. One exact keyword check in that smoke report flags the follow-up because it expects “rollback” while the correct answer says “rolled back”; this is a wording mismatch in the smoke check, not a changed evaluation case.
@@ -51,8 +53,11 @@ API_URL=$(gcloud run services describe incidentiq-trial-api --region us-central1
 UI_URL=$(gcloud run services describe incidentiq-trial-ui --region us-central1 --project handicapskater-gcp --format='value(status.url)')
 curl -f "$API_URL/health"
 curl -f "$API_URL/ready"
+curl -f "$API_URL/version"
 curl -f -H 'Content-Type: application/json' -d '{"question":"What was the final root cause of INC-1042?","thread_id":"cloud-smoke-1042"}' "$API_URL/ask"
 curl -f "$UI_URL/_stcore/health"
+gcloud run services describe incidentiq-trial-api --region us-central1 --project handicapskater-gcp --format='value(status.latestReadyRevisionName,status.traffic[0].revisionName,status.traffic[0].percent)'
+gcloud run services describe incidentiq-trial-ui --region us-central1 --project handicapskater-gcp --format='value(status.latestReadyRevisionName,status.traffic[0].revisionName,status.traffic[0].percent)'
 ```
 
 Also open `UI_URL` in a browser and submit a question through its public form. Check the answer, specialist route, provider `gemini`, and a citation containing `INC-1042-POSTMORTEM`.

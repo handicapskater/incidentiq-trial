@@ -5,6 +5,25 @@ import google.auth
 from google.auth.transport import requests as google_requests
 
 
+def test_llama_output_is_limited_to_256_tokens(monkeypatch):
+    calls = []
+
+    class Response:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"choices": [{"message": {"content": "ok"}}]}
+
+    def fake_post(url, **kwargs):
+        calls.append((url, kwargs))
+        return Response()
+
+    monkeypatch.setattr(inference.httpx, "post", fake_post)
+    assert inference.LlamaProvider("http://llama:8080").generate("prompt") == "ok"
+    assert calls[0][1]["json"]["max_tokens"] == 256
+
+
 def test_gemini_provider_uses_adc_and_vertex_global_endpoint(monkeypatch):
     class Credentials:
         valid = False
@@ -40,3 +59,4 @@ def test_gemini_provider_uses_adc_and_vertex_global_endpoint(monkeypatch):
                            "locations/global/publishers/google/models/gemini-3.5-flash-lite:generateContent")
     assert calls[0][1]["headers"] == {"Authorization": "Bearer test-token"}
     assert calls[0][1]["json"]["generationConfig"]["responseMimeType"] == "application/json"
+    assert calls[0][1]["json"]["generationConfig"]["maxOutputTokens"] == 256

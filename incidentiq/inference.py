@@ -13,6 +13,9 @@ class InferenceProvider(Protocol):
     def generate(self, prompt: str) -> str: ...
 
 
+MAX_GENERATED_TOKENS = 256
+
+
 class LlamaProvider:
     """Call llama.cpp's OpenAI-compatible chat completion endpoint."""
 
@@ -29,7 +32,7 @@ class LlamaProvider:
                 "model": "local",
                 "messages": [{"role": "user", "content": prompt}],
                 "temperature": 0,
-                "max_tokens": 256,
+                "max_tokens": MAX_GENERATED_TOKENS,
                 "stream": False,
             },
             timeout=self.timeout,
@@ -60,7 +63,7 @@ class GeminiProvider:
             self._url(),
             headers={"Authorization": f"Bearer {token}"},
             json={"contents": [{"role": "user", "parts": [{"text": prompt}]}],
-                  "generationConfig": {"temperature": 0, "maxOutputTokens": 512,
+                  "generationConfig": {"temperature": 0, "maxOutputTokens": MAX_GENERATED_TOKENS,
                                        "responseMimeType": "application/json"}},
             timeout=self.timeout,
         )

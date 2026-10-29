@@ -36,9 +36,28 @@ def test_scorer_detects_unsupported_citations_and_wrong_answers():
     assert report["metrics"]["answer_accuracy"] == 0.5
     assert report["metrics"]["retrieval_accuracy"] == 1.0
     assert report["metrics"]["citation_validity"] == 0.5
+    assert report["metrics"]["citation_id_validity"] == 0.5
     assert report["metrics"]["abstention"] == 0.5
     assert report["latency_ms"] == {"mean": 100.0, "p95": 120.0}
     assert report["error_count"] == 0
+
+
+def test_valid_citation_id_does_not_prove_unsupported_claim():
+    case = next(case for case in load_cases() if case["id"] == "exact-01")
+    valid_id = case["expected_chunks"][0]
+    record = {
+        "response": {
+            "answer": "Sabotage caused the outage.", "citations": [valid_id],
+            "specialist_route": "investigator", "provider": "llama",
+            "latency_ms": 1, "abstained": False,
+        },
+        "evidence": [{"document_id": "INC-104", "chunk_id": valid_id,
+                      "text": "An expired certificate caused the outage.",
+                      "similarity_score": 1.0, "metadata": {}}],
+    }
+    report = score([case], {case["id"]: record})
+    assert report["metrics"]["citation_id_validity"] == 1.0
+    assert report["metrics"]["answer_accuracy"] == 0.0
 
 
 def test_missing_and_invalid_predictions_are_errors():

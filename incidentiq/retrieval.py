@@ -18,6 +18,63 @@ from incidentiq.schemas import RetrievedEvidence
 COLLECTION_NAME = "incidentiq_evidence"
 INCIDENT_ID_PATTERN = re.compile(r"\bINC-\d{4,}\b", re.IGNORECASE)
 DOCUMENT_TYPES = {"report", "logs", "runbook", "postmortem"}
+# Calibrated on bundled-corpus unscoped queries: supported examples scored
+# 0.365-0.629 at the top; unrelated payroll/weather/bread scored 0.032-0.251.
+UNSCOPED_MIN_SIMILARITY = 0.30
+_WORDS = re.compile(r"[a-z][a-z0-9]+", re.IGNORECASE)
+_FUTURE_PREDICTION = re.compile(
+    r"\b(?:which|what)\s+incident\s+(?:will|would)\b|"
+    r"\b(?:will|would|going to)\b.{0,80}\b(?:happen|occur)\b|"
+    r"\b(?:predict|forecast)\b.{0,80}\b(?:incident|outage)\b|"
+    r"\b(?:next|future)\b.{0,40}\b(?:incident|outage)\b",
+    re.IGNORECASE,
+)
+_NON_TOPIC = {
+    "what", "which", "when", "where", "why", "how", "who", "was", "were", "the", "this",
+    "that", "for", "from", "with", "about", "into", "and", "are", "did", "does", "can",
+    "could", "should", "would", "please", "summarize", "summary", "incident", "inc",
+    "cause", "caused", "root", "final", "confirmed", "initial", "initially", "preliminary", "suspected",
+    "impact", "affected", "service", "timeline", "resolved", "resolution", "recovery",
+    "recover", "fixed", "fix", "mitigation", "mitigated", "action", "actions", "plan",
+    "prevention", "prevent", "recommend", "recommendation", "next", "steps", "repeat",
+    "corrective", "actual", "establish", "established", "happened",
+    "happen", "again", "evidence", "cite", "according", "concluded", "matching", "records",
+    "ignore", "instructions", "embedded", "retrieved", "notes", "inside", "following",
+    "postmortem", "linked", "compare", "between",
+    "draft", "explain", "tell", "customers", "customer", "month", "will", "without",
+}
+
+
+def evidence_is_sufficient(query: str, evidence: list[RetrievedEvidence]) -> bool:
+    """Require incident scope and topical support before sending chunks to the LLM."""
+    if _FUTURE_PREDICTION.search(query):
+        return False  # Historical incident reports cannot predict future incidents.
+    if not evidence:
+        return False
+    incident_ids = {item.upper() for item in INCIDENT_ID_PATTERN.findall(query)}
+    if incident_ids:
+        found = {
+            incident_id
+            for item in evidence
+            for incident_id in INCIDENT_ID_PATTERN.findall(
+                str(item.metadata.get("incident_id") or item.document_id).upper()
+            )
+        }
+        if not incident_ids <= found:
+            return False
+        if len(incident_ids) > 1:
+            return True  # The caller explicitly requested comparison of these records.
+    elif max(item.similarity_score for item in evidence) < UNSCOPED_MIN_SIMILARITY:
+        return False
+    topical = {
+        token for token in _WORDS.findall(INCIDENT_ID_PATTERN.sub(" ", query.lower()))
+        if len(token) >= 4 and token not in _NON_TOPIC
+    }
+    if topical:
+        evidence_words = set(_WORDS.findall(" ".join(item.text.lower() for item in evidence)))
+        if not topical & evidence_words:
+            return False
+    return True
 
 
 def chunk_text(text: str, max_words: int = 120, overlap_words: int = 20) -> list[str]:

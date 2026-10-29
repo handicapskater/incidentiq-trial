@@ -42,7 +42,7 @@ services:
   ui:
     build:
       context: .
-      target: ui
+      dockerfile: Dockerfile.ui
     environment:
       API_URL: http://api:8000
     ports:

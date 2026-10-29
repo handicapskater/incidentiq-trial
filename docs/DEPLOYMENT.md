@@ -23,7 +23,7 @@ From a clean `main` branch, run:
 ./scripts/deploy_cloud_run.sh --deploy-integrated-main
 ```
 
-The script creates the `incidentiq` Artifact Registry repository if needed, builds `linux/amd64` API and UI images with Cloud Build, deploys the API with its service account, then deploys the UI with `API_URL` set to the API service URL. It prints both URLs. Cloud Build excludes `.env`, local model files, credentials, and local databases via `.gcloudignore`.
+The script creates the `incidentiq` Artifact Registry repository if needed, builds `linux/amd64` API and UI images with Cloud Build, deploys the API with its service account, then deploys the UI with `API_URL` set to the API service URL. It prints both URLs. `Dockerfile.cloud` installs CPU-only PyTorch and bakes the retrieval assets; the local Compose API keeps its own Dockerfile. The UI has a separate small image. Cloud Build excludes `.env`, local model files, credentials, and local databases via `.gcloudignore`.
 
 The API image downloads and caches all-MiniLM-L6-v2 and ingests the 20 bundled synthetic documents into 31 Chroma chunks at build time. New Cloud Run instances start with this immutable baseline index. The image sets Hugging Face offline mode at runtime so requests do not depend on a model download. API capacity is 2 CPU, 4 GiB memory, concurrency 1, maximum one instance, and a 300-second request timeout. The UI uses 1 CPU and 1 GiB memory.
 

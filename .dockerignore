@@ -5,3 +5,8 @@ data
 *.gguf
 __pycache__
 .pytest_cache
+verification
+*.pem
+*.key
+*credential*.json
+*secret*.json

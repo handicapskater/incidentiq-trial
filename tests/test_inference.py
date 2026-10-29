@@ -1,6 +1,8 @@
 """Vertex provider uses service identity and the configured global endpoint."""
 
 from incidentiq import inference
+import google.auth
+from google.auth.transport import requests as google_requests
 
 
 def test_gemini_provider_uses_adc_and_vertex_global_endpoint(monkeypatch):
@@ -13,8 +15,8 @@ def test_gemini_provider_uses_adc_and_vertex_global_endpoint(monkeypatch):
             self.token = "test-token"
 
     credentials = Credentials()
-    monkeypatch.setattr(inference.google.auth, "default", lambda scopes: (credentials, "test-project"))
-    monkeypatch.setattr(inference, "Request", lambda: object())
+    monkeypatch.setattr(google.auth, "default", lambda scopes: (credentials, "test-project"))
+    monkeypatch.setattr(google_requests, "Request", lambda: object())
     calls = []
 
     class Response:

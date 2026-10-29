@@ -2,8 +2,6 @@
 
 from typing import Protocol
 
-import google.auth
-from google.auth.transport.requests import Request
 import httpx
 
 from incidentiq.config import Settings
@@ -80,6 +78,9 @@ class GeminiProvider:
 
 def vertex_access_token() -> str:
     """Resolve Cloud Run's service identity; never use a stored API key."""
+    import google.auth
+    from google.auth.transport.requests import Request
+
     credentials, _ = google.auth.default(scopes=["https://www.googleapis.com/auth/cloud-platform"])
     if not credentials.valid:
         credentials.refresh(Request())

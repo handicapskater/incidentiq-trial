@@ -2,6 +2,7 @@ FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app \
     PORT=8501 \
     STREAMLIT_SERVER_HEADLESS=true
 
@@ -9,6 +10,7 @@ WORKDIR /app
 COPY requirements-ui.txt .
 RUN python -m pip install --no-cache-dir -r requirements-ui.txt
 COPY incidentiq ./incidentiq
+RUN cd /tmp && python -c "import incidentiq.ui"
 
 EXPOSE 8501
 CMD ["sh", "-c", "exec streamlit run incidentiq/ui.py --server.address 0.0.0.0 --server.port ${PORT:-8501}"]

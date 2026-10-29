@@ -7,9 +7,11 @@ IncidentIQ deploys two public Cloud Run services in project `handicapskater-gcp`
 | Service | Public URL | Ready revision |
 | --- | --- | --- |
 | FastAPI | https://incidentiq-trial-api-dpnhm5kswq-uc.a.run.app | `incidentiq-trial-api-00001-jzf` |
-| Streamlit | https://incidentiq-trial-ui-dpnhm5kswq-uc.a.run.app | `incidentiq-trial-ui-00001-6nd` |
+| Streamlit | https://incidentiq-trial-ui-dpnhm5kswq-uc.a.run.app | `incidentiq-trial-ui-00002-4fj` |
 
 Both services reported Ready and 100% traffic on these revisions. Cloud Build `e0ab25ed-d6ad-41b6-92f0-c66845d03dbd` built the images from Git commit `6546d1d28b380b757c432c07f6bb5c044d850fcd`; the build log confirmed 20 documents and 31 Chroma chunks. The API service identity is `incidentiq-trial-api@handicapskater-gcp.iam.gserviceaccount.com` with `roles/aiplatform.user`.
+
+The UI revision was updated on 2026-10-29 to set `PYTHONPATH=/app` because the prior image's Streamlit script could not import `incidentiq` from its script directory. The new UI revision retains its `API_URL` pointing to the Cloud Run API. The repository's `Dockerfile.ui` now embeds the package path and checks import during build. The UI revision still uses the original image digest; the environment update fixes the running configuration.
 
 Actual public HTTP checks returned 200 for API `/health`, `/ready`, and `/ask`, plus UI `/` and `/_stcore/health`. The UI revision's `API_URL` points to the public API URL, which also returned 200 for `/ready`. The first live `/ask` call answered the final cause of INC-1042 using Vertex Gemini and cited `INC-1042-POSTMORTEM:chunk-000`; its reported latency was 39,020 ms during cold startup. A separate six-request Cloud Run HTTP smoke evaluation returned 6/6 HTTP 200, 5/5 expected specialist routes for supported questions, 5/5 expected postmortem citations, and correct abstention for an unsupported incident. The same-thread follow-up answered the INC-1042 recovery question. Five supported request wall times averaged 1,106 ms after warm-up; the first cold request is excluded from that warm figure. See `verification/cloud_http_report.json` for full responses and per-request timings. One exact keyword check in that smoke report flags the follow-up because it expects “rollback” while the correct answer says “rolled back”; this is a wording mismatch in the smoke check, not a changed evaluation case.
 

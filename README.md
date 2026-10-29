@@ -1,6 +1,6 @@
 # IncidentIQ trial
 
-IncidentIQ answers questions about a synthetic incident corpus with FastAPI, a LangGraph supervisor that selects Investigator, Planner, or Communicator, Chroma retrieval, all-MiniLM-L6-v2 embeddings, and llama.cpp. Streamlit provides the UI. GCP deployment has not been performed.
+IncidentIQ answers questions about a synthetic incident corpus with FastAPI, a LangGraph supervisor that selects Investigator, Planner, or Communicator, Chroma retrieval, all-MiniLM-L6-v2 embeddings, and llama.cpp. Streamlit provides the UI. The Cloud Run deployment uses Vertex Gemini; see `docs/DEPLOYMENT.md`.
 
 ## Local setup
 
@@ -30,6 +30,16 @@ LLAMA_URL=http://127.0.0.1:8082 .venv/bin/uvicorn incidentiq.api:app --host 127.
 
 The measured evaluation used port 8082 and the same GGUF file as Docker. Host llama.cpp reported Apple M1 Max Metal and averaged 1.22 seconds per evaluation case; that result does not represent Docker CPU performance.
 
+To run the existing Docker API and Streamlit UI images against the host Metal server, bind `llama-server` to `0.0.0.0` on port 8082, then run:
+
+```sh
+docker compose build ui
+INCIDENTIQ_LOCAL_LLAMA_URL=http://host.docker.internal:8082 docker compose up -d --no-build api ui
+curl http://localhost:8000/ready
+```
+
+The UI image checks that `incidentiq.ui` imports outside its working directory during build. The UI's `API_URL` remains `http://api:8000` inside Compose, and the API's `LLAMA_URL` points to host Metal only when `INCIDENTIQ_LOCAL_LLAMA_URL` is set. The API logs retrieved document and chunk IDs, selected specialist, prompt evidence chunk IDs, and validated citations. The prompt itself is not logged.
+
 The graph exposes only `incident_retrieval` as a tool. Shell, arbitrary file, and network tools are not registered; model output requesting a tool is rejected. Citation validation checks returned chunk IDs against retrieved evidence.
 
 ## Verification
@@ -42,3 +52,4 @@ LLAMA_URL=http://127.0.0.1:8082 .venv/bin/python -m verification.run_live_evalua
 The evaluator writes responses to `verification/live_evaluation_predictions.jsonl` and metrics to `verification/live_evaluation_report.json`. It indexes the unchanged `evaluation/reference_chunks.json` into a separate local Chroma index. See `RUBRIC.md` for results and remaining gaps.
 
 Cloud Run setup, verification, and persistence limits are in `docs/DEPLOYMENT.md`.
+The INC-1042 request-path investigation, retrieved IDs, prompt verification, and local API/UI comparison are in `docs/RAG_PATH_DIAGNOSTIC.md`.

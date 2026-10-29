@@ -22,11 +22,12 @@ services:
       target: api
     environment:
       MODEL_PROVIDER: llama
-      LLAMA_URL: http://llama:8080
+      LLAMA_URL: ${INCIDENTIQ_LOCAL_LLAMA_URL:-http://llama:8080}
       CHROMA_PATH: /app/data/chroma
       DATA_DIR: /app/data
     volumes:
       - incidentiq-data:/app/data
+      - ./incidentiq:/app/incidentiq:ro
     ports:
       - "8000:8000"
     depends_on:

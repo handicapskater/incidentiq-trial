@@ -1,6 +1,7 @@
 """LangGraph supervisor with retrieval, analysis, and citation specialists."""
 
 import re
+import logging
 from time import perf_counter
 from typing import Any
 
@@ -20,6 +21,7 @@ from incidentiq.schemas import AgentState, RetrievedEvidence
 
 
 INCIDENT_ID = re.compile(r"\bINC-\d{4,}\b", re.IGNORECASE)
+logger = logging.getLogger("uvicorn.error")
 
 
 class WorkflowState(AgentState, total=False):
@@ -79,12 +81,16 @@ def build_graph(
                     if previous_id:
                         query = f"{query} {previous_id.group().upper()}"
                         break
-        return {"evidence": invoke_tool("incident_retrieval", query, active_retriever),
+        evidence = invoke_tool("incident_retrieval", query, active_retriever)
+        logger.info("retrieval query=%r evidence=%s", query,
+                    [(item.document_id, item.chunk_id) for item in evidence])
+        return {"evidence": evidence,
                 "stage": "analyze", "specialist_trace": [*state.get("specialist_trace", []), "retrieval"]}
 
     def specialist_node(name: str):
         def execute(state: WorkflowState) -> dict[str, Any]:
             evidence = [RetrievedEvidence.model_validate(item) for item in state.get("evidence", [])]
+            logger.info("specialist=%s evidence_chunks=%s", name, [item.chunk_id for item in evidence])
             answer, citations, abstained = analyze_incident(
                 state["question"], evidence, list(state.get("messages", []))[:-1], active_provider,
                 specialist=name,
@@ -98,6 +104,7 @@ def build_graph(
         answer, citations, abstained = validate_citations(
             state.get("answer", ""), state.get("citations", []), evidence, state.get("abstained", False)
         )
+        logger.info("citation_validation citations=%s abstained=%s", citations, abstained)
         messages = list(state.get("messages", []))
         messages.append({"role": "assistant", "content": answer})
         return {

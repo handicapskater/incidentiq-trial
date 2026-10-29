@@ -10,6 +10,7 @@ from incidentiq.agents.citation import validate_citations
 from incidentiq.agents.tools import ALLOWED_TOOLS, ToolNotAllowed, invoke_tool
 from incidentiq.graph import build_graph
 from incidentiq.schemas import RetrievedEvidence
+from incidentiq.retrieval import IncidentRetriever
 
 
 def test_followup_retrieval_uses_previous_incident_id():
@@ -98,3 +99,47 @@ def test_prompt_injection_tool_request_is_rejected_and_uncited():
     assert abstained is True
     assert citations == []
     assert "override accepted" not in answer
+
+
+def test_inc1042_multifacet_question_reaches_investigator_with_report_and_postmortem(tmp_path):
+    from pathlib import Path
+
+    question = ("For incident INC-1042, what was the initially suspected root cause, "
+                "what did the final postmortem establish as the actual root cause, "
+                "and what corrective action resolved the incident?")
+    retriever = IncidentRetriever(tmp_path / "chroma")
+    retriever.ingest(Path(__file__).resolve().parents[1] / "corpus")
+    prompts = []
+
+    def generate(prompt):
+        prompts.append(prompt)
+        evidence = json.loads(prompt.split("Evidence: ", 1)[1])
+        ids = [item["chunk_id"] for item in evidence]
+        return json.dumps({"answer": "Supported by the incident report and final postmortem.",
+                           "citations": [next(cid for cid in ids if cid.startswith(prefix))
+                                         for prefix in ("INC-1042-REPORT:", "INC-1042-POSTMORTEM:")],
+                           "abstained": False})
+
+    graph = build_graph(retriever=retriever.retrieve,
+                        provider=SimpleNamespace(name="llama", generate=generate))
+    config = {"configurable": {"thread_id": "multifacet-1042"}}
+    state = graph.invoke({"question": question, "thread_id": "multifacet-1042"}, config=config)
+
+    ids = {(item.document_id, item.chunk_id) for item in state["evidence"]}
+    assert any(doc == "INC-1042-REPORT" for doc, _ in ids)
+    assert any(doc == "INC-1042-POSTMORTEM" for doc, _ in ids)
+    assert "network partition" in prompts[0]
+    assert "card processor slowdown" in prompts[0]
+    assert "connection pool maximum from 80 to 20" not in prompts[0]
+    assert len(prompts) == 3
+    assert all("Answer only the current question clause" in prompt for prompt in prompts)
+    assert "initially suspected root cause" in prompts[0].split("Current question: ", 1)[1].split("\nEvidence:", 1)[0]
+    assert "do not substitute the confirmed root cause" in prompts[0]
+    assert "final postmortem" in prompts[1].split("Current question: ", 1)[1].split("\nEvidence:", 1)[0]
+    assert "corrective action" in prompts[2].split("Current question: ", 1)[1].split("\nEvidence:", 1)[0]
+    assert "connection pool maximum from 80 to 20" in prompts[1]
+    assert "rolled back the pool setting to 80" in prompts[2]
+    assert state["specialist_route"] == "investigator"
+    assert state["specialist_trace"] == ["retrieval", "investigator", "citation_validation"]
+    assert {citation.split(":")[0] for citation in state["citations"]} == {
+        "INC-1042-REPORT", "INC-1042-POSTMORTEM"}

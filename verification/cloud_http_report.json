@@ -1,0 +1,158 @@
+{
+  "timestamp_utc": "2026-10-29T08:29:11.384989+00:00",
+  "api_url": "https://incidentiq-trial-api-324477223314.us-central1.run.app",
+  "case_count": 6,
+  "results": [
+    {
+      "case": "cause",
+      "question": "What was the final root cause of INC-1043?",
+      "http_status": 200,
+      "wall_ms": 1092.96,
+      "provider": "gemini",
+      "route": "investigator",
+      "expected_route": "investigator",
+      "route_valid": true,
+      "citations": [
+        "INC-1043-REPORT:chunk-000",
+        "INC-1043-LOGS:chunk-000",
+        "INC-1043-POSTMORTEM:chunk-000"
+      ],
+      "expected_citation": "INC-1043-POSTMORTEM",
+      "citation_valid": true,
+      "abstained": false,
+      "latency_ms": 906.2781699999789,
+      "answer": "The final root cause of INC-1043 was that the public TLS certificate for auth.internal.example expired at 02:00 UTC because the renewal job had a disabled service account.",
+      "expected_terms": [
+        "certificate",
+        "expired"
+      ],
+      "answer_terms_present": [
+        true,
+        true
+      ]
+    },
+    {
+      "case": "plan",
+      "question": "What prevention steps should we take after INC-1044?",
+      "http_status": 200,
+      "wall_ms": 1126.1,
+      "provider": "gemini",
+      "route": "planner",
+      "expected_route": "planner",
+      "route_valid": true,
+      "citations": [
+        "INC-1044-REPORT:chunk-001",
+        "INC-1044-REPORT:chunk-000",
+        "INC-1044-RUNBOOK:chunk-000",
+        "INC-1044-POSTMORTEM:chunk-000"
+      ],
+      "expected_citation": "INC-1044-POSTMORTEM",
+      "citation_valid": true,
+      "abstained": false,
+      "latency_ms": 988.3183160000044,
+      "answer": "Following INC-1044, the prevention steps taken were restoring max.poll.records to 500, temporarily scaling consumers, and adding lag-based deployment checks.",
+      "expected_terms": [
+        "max.poll.records",
+        "lag"
+      ],
+      "answer_terms_present": [
+        true,
+        true
+      ]
+    },
+    {
+      "case": "impact",
+      "question": "Summarize the customer impact of INC-1045.",
+      "http_status": 200,
+      "wall_ms": 1058.14,
+      "provider": "gemini",
+      "route": "communicator",
+      "expected_route": "communicator",
+      "route_valid": true,
+      "citations": [
+        "INC-1045-POSTMORTEM:chunk-000"
+      ],
+      "expected_citation": "INC-1045-POSTMORTEM",
+      "citation_valid": true,
+      "abstained": false,
+      "latency_ms": 873.5289390000105,
+      "answer": "During the impact window from 2026-04-20T18:05:00Z to 2026-04-20T19:02:00Z, session lookups timed out and web requests fell back to the primary database [INC-1045-POSTMORTEM:chunk-000].",
+      "expected_terms": [
+        "session",
+        "database"
+      ],
+      "answer_terms_present": [
+        true,
+        true
+      ]
+    },
+    {
+      "case": "memory-first",
+      "question": "What caused INC-1042?",
+      "http_status": 200,
+      "wall_ms": 1076.61,
+      "provider": "gemini",
+      "route": "investigator",
+      "expected_route": "investigator",
+      "route_valid": true,
+      "citations": [
+        "INC-1042-LOGS:chunk-000",
+        "INC-1042-POSTMORTEM:chunk-000",
+        "INC-1042-REPORT:chunk-000"
+      ],
+      "expected_citation": "INC-1042-POSTMORTEM",
+      "citation_valid": true,
+      "abstained": false,
+      "latency_ms": 955.5770240000072,
+      "answer": "INC-1042 was caused by a deployment that changed the PostgreSQL connection pool maximum from 80 to 20 per pod while six pods held long transactions, resulting in the exhaustion of all available connections.",
+      "expected_terms": [
+        "pool",
+        "20"
+      ],
+      "answer_terms_present": [
+        true,
+        true
+      ]
+    },
+    {
+      "case": "memory-followup",
+      "question": "What fixed it?",
+      "http_status": 200,
+      "wall_ms": 1174.9,
+      "provider": "gemini",
+      "route": "investigator",
+      "expected_route": "investigator",
+      "route_valid": true,
+      "citations": [
+        "INC-1042-RUNBOOK:chunk-000",
+        "INC-1042-POSTMORTEM:chunk-001",
+        "INC-1042-REPORT:chunk-001"
+      ],
+      "expected_citation": "INC-1042-POSTMORTEM",
+      "citation_valid": true,
+      "abstained": false,
+      "latency_ms": 985.3890770000078,
+      "answer": "INC-1042 was fixed by rolling back the pool setting to 80, terminating orphaned long transactions, and adding pool saturation alerts.",
+      "expected_terms": [
+        "80",
+        "rollback"
+      ],
+      "answer_terms_present": [
+        true,
+        false
+      ]
+    },
+    {
+      "case": "unsupported",
+      "question": "What was the root cause of INC-9999?",
+      "http_status": 200,
+      "wall_ms": 226.82,
+      "provider": "gemini",
+      "route": "investigator",
+      "citations": [],
+      "abstained": true,
+      "latency_ms": 21.94727599999169,
+      "answer": "I don't have enough verified evidence to answer this incident question."
+    }
+  ]
+}

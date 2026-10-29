@@ -3,7 +3,7 @@
 | # | Requirement | Status | Verified evidence |
 | --- | --- | --- | --- |
 | 1 | Deployment: FastAPI, Streamlit, Docker | VERIFIED LOCALLY | Compose API, UI, and llama health checks passed on 2026-10-29; GCP deployment not attempted. Docker CPU inference exceeded the API's 120-second timeout. |
-| 2 | GitHub: New documented repository | PENDING PUBLICATION | Local repository and documentation are ready; remote creation and push are the final publication step. |
+| 2 | GitHub: New documented repository | VERIFIED | Public repository [handicapskater/incidentiq-trial](https://github.com/handicapskater/incidentiq-trial) exists with `main` as the default branch; local `origin` and remote `main` were verified. |
 | 3 | LLM Evaluation: Accuracy, grounding, latency | VERIFIED | Unchanged 19-case reference set: answer accuracy 0.9474, retrieval accuracy 0.8947, citation validity 1.0, abstention 1.0, mean latency 1221.36 ms, p95 1727.70 ms, zero errors. See `verification/live_evaluation_report.json`. Run used the same GGUF via host Metal llama.cpp. |
 | 4 | Multi-Agent: LangGraph supervisor and specialists | VERIFIED | Supervisor executed retrieval, one intent-selected Investigator/Planner/Communicator node, and citation validation. Prediction traces confirm the executed specialist; semantic routing scored 1.0 across 19 cases. |
 | 5 | Embedding: all-MiniLM-L6-v2 | VERIFIED | Ingestion loaded the cached model and indexed 20 documents into 31 chunks using 384-dimensional normalized embeddings. |

@@ -1,0 +1,2 @@
+# Agent D defines services and verifies the GGUF host bind mount.
+services: {}

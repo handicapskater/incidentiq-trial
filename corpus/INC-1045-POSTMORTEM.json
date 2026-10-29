@@ -1,0 +1,8 @@
+{
+  "source_id": "INC-1045-POSTMORTEM",
+  "incident_id": "INC-1045",
+  "document_type": "postmortem",
+  "timestamp": "2026-04-20T19:02:00Z",
+  "title": "INC-1045 Redis Session Cache postmortem",
+  "content": "INC-1045 postmortem for Redis Session Cache, published 2026-04-20T16:00:00Z. Impact window 2026-04-20T18:05:00Z to 2026-04-20T19:02:00Z. Customer impact: session lookups timed out and web requests fell back to the primary database. During triage one team proposed a Redis network ACL change blocking client traffic; another proposed a bot-driven login surge overwhelming normal capacity. These conflicting preliminary hypotheses were rejected after checking INC-1045-LOGS and service metrics. Confirmed root cause: a rollout removed TTLs from session keys, filling Redis memory to maxmemory and triggering eviction churn. Decisive evidence: INFO memory showed used_memory=15.9GiB of 16GiB; key samples had TTL=-1; evicted_keys increased by 2.1 million. Recovery and prevention: restored session TTLs, expired unbounded keys in batches, increased temporary cache capacity, and alerted on no-expiry session keys. Follow-up owner is the Redis Session Cache on-call team. Evidence source IDs: INC-1045-REPORT, INC-1045-LOGS, INC-1045-RUNBOOK. This postmortem source ID is INC-1045-POSTMORTEM."
+}

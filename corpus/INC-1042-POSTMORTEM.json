@@ -1,0 +1,8 @@
+{
+  "source_id": "INC-1042-POSTMORTEM",
+  "incident_id": "INC-1042",
+  "document_type": "postmortem",
+  "timestamp": "2026-04-14T10:06:00Z",
+  "title": "INC-1042 Payment API postmortem",
+  "content": "INC-1042 postmortem for Payment API, published 2026-04-14T16:00:00Z. Impact window 2026-04-14T09:12:00Z to 2026-04-14T10:06:00Z. Customer impact: checkout requests returned HTTP 503 and p95 latency rose to 8.4 seconds. During triage one team proposed a network partition between the API and PostgreSQL; another proposed a sudden card processor slowdown. These conflicting preliminary hypotheses were rejected after checking INC-1042-LOGS and service metrics. Confirmed root cause: a deployment changed the PostgreSQL connection pool maximum from 80 to 20 per pod while six pods held long transactions; all available connections were exhausted. Decisive evidence: pg_stat_activity showed 120 active connections and 340 waiters; payment-api pool_acquire_timeout rose to 42 percent. Recovery and prevention: rolled back the pool setting to 80, terminated orphaned long transactions, and added pool saturation alerts. Follow-up owner is the Payment API on-call team. Evidence source IDs: INC-1042-REPORT, INC-1042-LOGS, INC-1042-RUNBOOK. This postmortem source ID is INC-1042-POSTMORTEM."
+}

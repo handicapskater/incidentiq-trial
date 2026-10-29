@@ -1,0 +1,8 @@
+{
+  "source_id": "INC-1042-RUNBOOK",
+  "incident_id": "INC-1042",
+  "document_type": "runbook",
+  "timestamp": "2026-04-14T10:06:00Z",
+  "title": "INC-1042 Payment API runbook",
+  "content": "INC-1042 runbook for Payment API, last updated 2026-04-14T10:06:00Z. Symptom to identify: checkout requests returned HTTP 503 and p95 latency rose to 8.4 seconds. First verify the time window and inspect INC-1042-LOGS. Test competing hypotheses separately: a network partition between the API and PostgreSQL; a sudden card processor slowdown. Do not treat either as established without matching evidence. Diagnostic confirmation for this incident: pg_stat_activity showed 120 active connections and 340 waiters; payment-api pool_acquire_timeout rose to 42 percent. If confirmed, apply recovery steps: rolled back the pool setting to 80, terminated orphaned long transactions, and added pool saturation alerts. Recheck customer-facing errors and record the resolution timestamp 2026-04-14T10:06:00Z. For causal analysis cite INC-1042-POSTMORTEM. Evidence source ID: INC-1042-RUNBOOK."
+}

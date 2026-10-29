@@ -1,0 +1,8 @@
+{
+  "source_id": "INC-1045-RUNBOOK",
+  "incident_id": "INC-1045",
+  "document_type": "runbook",
+  "timestamp": "2026-04-20T19:02:00Z",
+  "title": "INC-1045 Redis Session Cache runbook",
+  "content": "INC-1045 runbook for Redis Session Cache, last updated 2026-04-20T19:02:00Z. Symptom to identify: session lookups timed out and web requests fell back to the primary database. First verify the time window and inspect INC-1045-LOGS. Test competing hypotheses separately: a Redis network ACL change blocking client traffic; a bot-driven login surge overwhelming normal capacity. Do not treat either as established without matching evidence. Diagnostic confirmation for this incident: INFO memory showed used_memory=15.9GiB of 16GiB; key samples had TTL=-1; evicted_keys increased by 2.1 million. If confirmed, apply recovery steps: restored session TTLs, expired unbounded keys in batches, increased temporary cache capacity, and alerted on no-expiry session keys. Recheck customer-facing errors and record the resolution timestamp 2026-04-20T19:02:00Z. For causal analysis cite INC-1045-POSTMORTEM. Evidence source ID: INC-1045-RUNBOOK."
+}

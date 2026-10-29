@@ -1,0 +1,8 @@
+{
+  "source_id": "INC-1046-RUNBOOK",
+  "incident_id": "INC-1046",
+  "document_type": "runbook",
+  "timestamp": "2026-04-22T09:34:00Z",
+  "title": "INC-1046 Reporting Database runbook",
+  "content": "INC-1046 runbook for Reporting Database, last updated 2026-04-22T09:34:00Z. Symptom to identify: daily reporting queries exceeded 90 seconds and dashboard exports timed out. First verify the time window and inspect INC-1046-LOGS. Test competing hypotheses separately: a warehouse ingestion delay leaving reports to scan incomplete partitions; storage IOPS contention from backups. Do not treat either as established without matching evidence. Diagnostic confirmation for this incident: EXPLAIN ANALYZE showed Seq Scan on reports with 18.4 million rows; migration diff removed idx_reports_tenant_created. If confirmed, apply recovery steps: recreated the composite index concurrently, analyzed the table, and added query-plan regression checks to migrations. Recheck customer-facing errors and record the resolution timestamp 2026-04-22T09:34:00Z. For causal analysis cite INC-1046-POSTMORTEM. Evidence source ID: INC-1046-RUNBOOK."
+}

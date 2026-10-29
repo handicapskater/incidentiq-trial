@@ -1,0 +1,8 @@
+{
+  "source_id": "INC-1042-LOGS",
+  "incident_id": "INC-1042",
+  "document_type": "logs",
+  "timestamp": "2026-04-14T10:06:00Z",
+  "title": "INC-1042 Payment API logs",
+  "content": "INC-1042 application logs for Payment API, date 2026-04-14, all timestamps UTC. Raw event extracts: 09:17:11Z payment-api ERROR pool_acquire_timeout wait_ms=5000 active=20 idle=0 pending=57; 09:26:04Z postgres INFO pg_stat_activity active=120 waiting=340; 09:44:09Z payment-api INFO config_rollback pool_max=80; 10:06:00Z payment-api INFO checkout_error_rate=0.2pct. Triage note at 2026-04-14T09:17:00Z: competing possibilities included a network partition between the API and PostgreSQL and a sudden card processor slowdown; these were preliminary and unverified. Correlation with service metrics and deployment history confirmed: a deployment changed the PostgreSQL connection pool maximum from 80 to 20 per pod while six pods held long transactions; all available connections were exhausted. The recovery event supports the remediation recorded in INC-1042-REPORT and INC-1042-POSTMORTEM. Evidence source ID: INC-1042-LOGS."
+}

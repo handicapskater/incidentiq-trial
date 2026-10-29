@@ -1,0 +1,8 @@
+{
+  "source_id": "INC-1046-LOGS",
+  "incident_id": "INC-1046",
+  "document_type": "logs",
+  "timestamp": "2026-04-22T09:34:00Z",
+  "title": "INC-1046 Reporting Database logs",
+  "content": "INC-1046 application logs for Reporting Database, date 2026-04-22, all timestamps UTC. Raw event extracts: 07:46:11Z reporting-db WARN query_duration_ms=94720 tenant=large; 08:05:30Z reporting-db INFO plan=Seq_Scan rows=18400000; 08:31:02Z migration-audit INFO dropped_index=idx_reports_tenant_created; 09:07:00Z reporting-db INFO create_index_concurrently=complete; 09:34:00Z reporting-db INFO query_duration_ms=1240. Triage note at 2026-04-22T07:46:00Z: competing possibilities included a warehouse ingestion delay leaving reports to scan incomplete partitions and storage IOPS contention from backups; these were preliminary and unverified. Correlation with service metrics and deployment history confirmed: a migration dropped the composite index on reports(tenant_id, created_at), forcing sequential scans on the largest tenant tables. The recovery event supports the remediation recorded in INC-1046-REPORT and INC-1046-POSTMORTEM. Evidence source ID: INC-1046-LOGS."
+}

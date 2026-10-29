@@ -1,0 +1,8 @@
+{
+  "source_id": "INC-1046-POSTMORTEM",
+  "incident_id": "INC-1046",
+  "document_type": "postmortem",
+  "timestamp": "2026-04-22T09:34:00Z",
+  "title": "INC-1046 Reporting Database postmortem",
+  "content": "INC-1046 postmortem for Reporting Database, published 2026-04-22T16:00:00Z. Impact window 2026-04-22T07:30:00Z to 2026-04-22T09:34:00Z. Customer impact: daily reporting queries exceeded 90 seconds and dashboard exports timed out. During triage one team proposed a warehouse ingestion delay leaving reports to scan incomplete partitions; another proposed storage IOPS contention from backups. These conflicting preliminary hypotheses were rejected after checking INC-1046-LOGS and service metrics. Confirmed root cause: a migration dropped the composite index on reports(tenant_id, created_at), forcing sequential scans on the largest tenant tables. Decisive evidence: EXPLAIN ANALYZE showed Seq Scan on reports with 18.4 million rows; migration diff removed idx_reports_tenant_created. Recovery and prevention: recreated the composite index concurrently, analyzed the table, and added query-plan regression checks to migrations. Follow-up owner is the Reporting Database on-call team. Evidence source IDs: INC-1046-REPORT, INC-1046-LOGS, INC-1046-RUNBOOK. This postmortem source ID is INC-1046-POSTMORTEM."
+}

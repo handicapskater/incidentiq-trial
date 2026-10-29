@@ -1,0 +1,8 @@
+{
+  "source_id": "INC-1046-REPORT",
+  "incident_id": "INC-1046",
+  "document_type": "report",
+  "timestamp": "2026-04-22T07:46:00Z",
+  "title": "INC-1046 Reporting Database report",
+  "content": "INC-1046 incident report. Reporting Database. Opened 2026-04-22T07:46:00Z. Impact began 2026-04-22T07:30:00Z: daily reporting queries exceeded 90 seconds and dashboard exports timed out. Preliminary hypothesis H1 was a warehouse ingestion delay leaving reports to scan incomplete partitions. Conflicting preliminary hypothesis H2 was storage IOPS contention from backups. Neither hypothesis was confirmed. Investigators compared application logs, service metrics, configuration changes, and independent checks. Confirmed root cause at 2026-04-22T09:34:00Z: a migration dropped the composite index on reports(tenant_id, created_at), forcing sequential scans on the largest tenant tables. Supporting evidence: EXPLAIN ANALYZE showed Seq Scan on reports with 18.4 million rows; migration diff removed idx_reports_tenant_created. Remediation: recreated the composite index concurrently, analyzed the table, and added query-plan regression checks to migrations. Resolved 2026-04-22T09:34:00Z. Evidence source IDs: INC-1046-LOGS, INC-1046-RUNBOOK, INC-1046-POSTMORTEM. This report source ID is INC-1046-REPORT."
+}

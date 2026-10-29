@@ -1,0 +1,8 @@
+{
+  "source_id": "INC-1044-RUNBOOK",
+  "incident_id": "INC-1044",
+  "document_type": "runbook",
+  "timestamp": "2026-04-18T15:18:00Z",
+  "title": "INC-1044 Kafka Orders Consumer runbook",
+  "content": "INC-1044 runbook for Kafka Orders Consumer, last updated 2026-04-18T15:18:00Z. Symptom to identify: order events accumulated and downstream fulfillment updates were delayed by 47 minutes. First verify the time window and inspect INC-1044-LOGS. Test competing hypotheses separately: a Kafka broker leader election throttling reads; a malformed event causing repeated deserialization failures. Do not treat either as established without matching evidence. Diagnostic confirmation for this incident: consumer group lag reached 890000 records while broker health remained normal; configuration diff showed max.poll.records=10. If confirmed, apply recovery steps: restored max.poll.records to 500, scaled consumers temporarily, and added lag-based deployment checks. Recheck customer-facing errors and record the resolution timestamp 2026-04-18T15:18:00Z. For causal analysis cite INC-1044-POSTMORTEM. Evidence source ID: INC-1044-RUNBOOK."
+}

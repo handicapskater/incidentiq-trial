@@ -1,0 +1,8 @@
+{
+  "source_id": "INC-1044-LOGS",
+  "incident_id": "INC-1044",
+  "document_type": "logs",
+  "timestamp": "2026-04-18T15:18:00Z",
+  "title": "INC-1044 Kafka Orders Consumer logs",
+  "content": "INC-1044 application logs for Kafka Orders Consumer, date 2026-04-18, all timestamps UTC. Raw event extracts: 13:52:00Z orders-consumer WARN group_lag=890000 partition=orders-7; 14:12:19Z kafka-broker INFO leader_changes=0; 14:23:44Z orders-consumer INFO max.poll.records=10; 14:47:10Z orders-consumer INFO max.poll.records=500; 15:18:00Z orders-consumer INFO group_lag=320. Triage note at 2026-04-18T13:52:00Z: competing possibilities included a Kafka broker leader election throttling reads and a malformed event causing repeated deserialization failures; these were preliminary and unverified. Correlation with service metrics and deployment history confirmed: a consumer release set max.poll.records to 10 instead of 500, reducing throughput below the inbound event rate. The recovery event supports the remediation recorded in INC-1044-REPORT and INC-1044-POSTMORTEM. Evidence source ID: INC-1044-LOGS."
+}

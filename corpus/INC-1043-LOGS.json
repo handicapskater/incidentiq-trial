@@ -1,0 +1,8 @@
+{
+  "source_id": "INC-1043-LOGS",
+  "incident_id": "INC-1043",
+  "document_type": "logs",
+  "timestamp": "2026-04-16T03:21:00Z",
+  "title": "INC-1043 Authentication Gateway logs",
+  "content": "INC-1043 application logs for Authentication Gateway, date 2026-04-16, all timestamps UTC. Raw event extracts: 02:08:13Z auth-gateway ERROR tls_handshake certificate_expired serial=8F42; 02:34:00Z cert-check INFO notAfter=2026-04-16T02:00:00Z; 03:02:10Z auth-gateway INFO certificate_reloaded serial=9A17; 03:21:00Z auth-gateway INFO handshake_success_rate=99.9pct. Triage note at 2026-04-16T02:08:00Z: competing possibilities included a new identity provider policy rejecting old OAuth scopes and DNS propagation sending users to a retired gateway; these were preliminary and unverified. Correlation with service metrics and deployment history confirmed: the public TLS certificate for auth.internal.example expired at 02:00 UTC because the renewal job had a disabled service account. The recovery event supports the remediation recorded in INC-1043-REPORT and INC-1043-POSTMORTEM. Evidence source ID: INC-1043-LOGS."
+}

@@ -11,6 +11,7 @@ COPY incidentiq ./incidentiq
 COPY evaluation ./evaluation
 COPY corpus ./corpus
 COPY scripts ./scripts
+COPY tests/ ./tests/
 
 FROM base AS api
 EXPOSE 8000

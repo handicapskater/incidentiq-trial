@@ -48,11 +48,35 @@ def test_health_is_independent_of_graph():
         assert client.get("/health").json() == {"status": "ok"}
 
 
-def test_ready_without_graph_is_controlled():
+def test_ready_without_graph_is_controlled(monkeypatch):
+    from incidentiq import api
+
+    def missing_graph():
+        raise RuntimeError("graph missing")
+
+    monkeypatch.setattr(api, "_build_graph", missing_graph)
     with TestClient(app) as client:
         result = client.get("/ready")
     assert result.status_code == 503
     assert result.json() == {"detail": "Incident analysis is unavailable."}
+
+
+def test_ready_checks_dependencies_after_graph_is_cached(monkeypatch):
+    from functools import lru_cache
+    from incidentiq import api
+
+    @lru_cache(maxsize=1)
+    def cached_graph():
+        return StubGraph()
+
+    cached_graph()
+    monkeypatch.setattr(api, "_build_graph", cached_graph)
+    monkeypatch.setattr(api, "_check_dependencies", lambda: (_ for _ in ()).throw(RuntimeError("corpus missing")))
+    with TestClient(app) as client:
+        result = client.get("/ready")
+    assert result.status_code == 503
+    assert result.json() == {"detail": "Incident analysis is unavailable."}
+    assert cached_graph.cache_info().hits == 1
 
 
 def test_ready_with_graph(client):

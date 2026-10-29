@@ -53,6 +53,22 @@ def test_unknown_case_rejected():
         score(load_cases()[:1], {"unknown": {}})
 
 
+def test_routing_score_requires_executed_specialist_when_trace_exists():
+    case = next(case for case in load_cases() if case["id"] == "routing-02")
+    response = {
+        "answer": "Improve monitoring", "citations": ["inc-113-postmortem"],
+        "specialist_route": "planner", "provider": "llama", "latency_ms": 10, "abstained": False,
+    }
+    evidence = [{
+        "document_id": "INC-113", "chunk_id": "inc-113-postmortem",
+        "text": "Improve monitoring", "similarity_score": 1.0, "metadata": {},
+    }]
+    record = {"response": response, "evidence": evidence, "specialist_trace": ["retrieval", "investigator", "citation_validation"]}
+    assert score([case], {case["id"]: record})["metrics"]["routing"] == 0.0
+    record["specialist_trace"] = ["retrieval", "planner", "citation_validation"]
+    assert score([case], {case["id"]: record})["metrics"]["routing"] == 1.0
+
+
 def test_memory_requires_same_explicit_thread_id():
     cases = [case for case in load_cases() if case["category"] == "memory"]
     predictions = {}

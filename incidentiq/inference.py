@@ -30,6 +30,7 @@ class LlamaProvider:
                 "model": "local",
                 "messages": [{"role": "user", "content": prompt}],
                 "temperature": 0,
+                "max_tokens": 256,
                 "stream": False,
             },
             timeout=self.timeout,

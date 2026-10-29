@@ -1,7 +1,7 @@
 services:
   llama:
     image: ghcr.io/ggml-org/llama.cpp:server
-    command: ["-m", "/models/model.gguf", "--host", "0.0.0.0", "--port", "8080"]
+    command: ["-m", "/models/model.gguf", "--ctx-size", "4096", "--parallel", "1", "--host", "0.0.0.0", "--port", "8080"]
     volumes:
       - type: bind
         source: ${GGUF_MODEL_PATH:?Set GGUF_MODEL_PATH to an absolute host path}

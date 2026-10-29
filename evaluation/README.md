@@ -1,8 +1,8 @@
 # IncidentIQ evaluation
 
-`cases.json` contains 19 synthetic scenarios. `reference_chunks.json` is the evidence fixture. Agent B and the integration lead need to ingest these chunks with the listed `chunk_id` values, or map the IDs before running the live suite. The scenario routes (`investigator`, `planner`, `communicator`) should be reconciled with Agent A's implemented specialist names.
+`cases.json` contains 19 synthetic scenarios. `reference_chunks.json` is the evidence fixture. `verification/run_live_evaluation.py` indexes those chunks with their listed IDs in a separate Chroma collection and invokes the actual Investigator, Planner, and Communicator graph nodes. The application incident corpus is not changed.
 
-Capture one JSON object per case in a JSONL file, in case order for the memory pair. Each object has `case_id`, `response` (the `IncidentResponse` fields), and `evidence` (the retrieved `RetrievedEvidence` objects). Include `thread_id` when measuring memory. A failed invocation may use `error` instead of `response`. Preserve the `thread_id` in each case when invoking the graph.
+Capture one JSON object per case in a JSONL file, in case order for the memory pair. Each object has `case_id`, `response` (the `IncidentResponse` fields), `evidence` (the retrieved `RetrievedEvidence` objects), and `specialist_trace` (executed graph specialist names). Include `thread_id` when measuring memory. A failed invocation may use `error` instead of `response`. Preserve the `thread_id` in each case when invoking the graph. When a trace is present, routing counts only if the expected specialist was executed.
 
 ```sh
 python -m evaluation.evaluate predictions.jsonl --output report.json

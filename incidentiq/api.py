@@ -2,17 +2,23 @@
 
 import inspect
 import math
+import os
 import re
 from collections.abc import Mapping
 from functools import lru_cache
+from pathlib import Path
 from time import perf_counter
 from typing import Any
 
 from fastapi import Depends, FastAPI, HTTPException
+import chromadb
+import httpx
 from pydantic import ValidationError
 from starlette.concurrency import run_in_threadpool
 
 from incidentiq.schemas import IncidentRequest, IncidentResponse, RetrievedEvidence
+from incidentiq.config import Settings
+from incidentiq.retrieval import COLLECTION_NAME
 
 
 app = FastAPI(title="IncidentIQ")
@@ -20,14 +26,43 @@ _THREAD_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:-]*\Z")
 
 
 @lru_cache(maxsize=1)
-def get_graph() -> Any:
-    """Load Agent A's graph only when a request needs it."""
-    try:
-        from incidentiq.graph import build_graph
+def _build_graph() -> Any:
+    """Keep one graph instance so its checkpointer retains thread memory."""
+    from incidentiq.graph import build_graph
 
-        graph = build_graph()
-        if graph is None or not (callable(getattr(graph, "ainvoke", None)) or callable(getattr(graph, "invoke", None))):
-            raise RuntimeError("Graph has no invocation method")
+    graph = build_graph()
+    if graph is None or not (callable(getattr(graph, "ainvoke", None)) or callable(getattr(graph, "invoke", None))):
+        raise RuntimeError("Graph has no invocation method")
+    return graph
+
+
+def _check_dependencies() -> None:
+    """Probe current corpus and inference availability, not cached startup state."""
+    settings = Settings()
+    chroma_path = Path(settings.CHROMA_PATH)
+    if not chroma_path.is_dir():
+        raise RuntimeError("Chroma directory is missing")
+    collection = chromadb.PersistentClient(path=str(chroma_path)).get_collection(COLLECTION_NAME)
+    if collection.count() == 0:
+        raise RuntimeError("Incident corpus is not indexed")
+    provider = settings.MODEL_PROVIDER.lower()
+    if provider == "llama":
+        response = httpx.get(f"{settings.LLAMA_URL.rstrip('/')}/health", timeout=3.0)
+        response.raise_for_status()
+        if response.json().get("status") != "ok":
+            raise RuntimeError("llama.cpp model is not ready")
+    elif provider == "gemini":
+        if not os.environ.get("GEMINI_API_KEY"):
+            raise RuntimeError("Gemini API key is missing")
+    else:
+        raise RuntimeError("Unsupported model provider")
+
+
+def get_graph() -> Any:
+    """Resolve the cached graph and verify live dependencies for each request."""
+    try:
+        graph = _build_graph()
+        _check_dependencies()
         return graph
     except Exception as exc:
         raise HTTPException(status_code=503, detail="Incident analysis is unavailable.") from exc

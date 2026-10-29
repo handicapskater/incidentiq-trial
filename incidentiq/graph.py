@@ -1,5 +1,6 @@
 """LangGraph supervisor with retrieval, analysis, and citation specialists."""
 
+import re
 from time import perf_counter
 from typing import Any
 
@@ -10,15 +11,22 @@ from langgraph.graph import END, START, StateGraph
 
 from incidentiq.agents.analysis import analyze_incident
 from incidentiq.agents.citation import validate_citations
-from incidentiq.agents.retrieval import Retriever, default_retriever, retrieve_evidence
+from incidentiq.agents.retrieval import Retriever, default_retriever
+from incidentiq.agents.routing import select_specialist
+from incidentiq.agents.tools import invoke_tool
 from incidentiq.config import Settings
 from incidentiq.inference import InferenceProvider, get_provider
 from incidentiq.schemas import AgentState, RetrievedEvidence
 
 
+INCIDENT_ID = re.compile(r"\bINC-\d{4,}\b", re.IGNORECASE)
+
+
 class WorkflowState(AgentState, total=False):
     stage: str
     started_at: float
+    next_node: str
+    specialist_trace: list[str]
 
 
 def build_graph(
@@ -44,28 +52,46 @@ def build_graph(
             "question": question, "messages": messages, "evidence": [], "answer": "",
             "citations": [], "abstained": False, "provider": active_provider.name,
             "specialist_route": "", "latency_ms": 0.0, "stage": "retrieve",
+            "specialist_trace": [],
             "started_at": perf_counter(),
         }
 
     def supervisor(state: WorkflowState) -> dict[str, Any]:
         stage = state["stage"]
-        route = {"retrieve": "retrieval", "analyze": "incident_analysis", "validate": "citation_validation"}.get(stage)
+        route = {"retrieve": "retrieval", "analyze": select_specialist(state["question"]),
+                 "validate": "citation_validation"}.get(stage)
         if route is None:
             raise ValueError(f"Unknown workflow stage: {stage}")
-        return {"specialist_route": route}
+        result = {"next_node": route}
+        if stage == "analyze":
+            result["specialist_route"] = route
+        return result
 
     def route(state: WorkflowState) -> str:
-        return state["specialist_route"]
+        return state["next_node"]
 
     def retrieval_node(state: WorkflowState) -> dict[str, Any]:
-        return {"evidence": retrieve_evidence(state["question"], active_retriever), "stage": "analyze"}
+        query = state["question"]
+        if not INCIDENT_ID.search(query):
+            for message in reversed(state.get("messages", [])[:-1]):
+                if message.get("role") == "user":
+                    previous_id = INCIDENT_ID.search(message.get("content", ""))
+                    if previous_id:
+                        query = f"{query} {previous_id.group().upper()}"
+                        break
+        return {"evidence": invoke_tool("incident_retrieval", query, active_retriever),
+                "stage": "analyze", "specialist_trace": [*state.get("specialist_trace", []), "retrieval"]}
 
-    def analysis_node(state: WorkflowState) -> dict[str, Any]:
-        evidence = [RetrievedEvidence.model_validate(item) for item in state.get("evidence", [])]
-        answer, citations, abstained = analyze_incident(
-            state["question"], evidence, list(state.get("messages", []))[:-1], active_provider
-        )
-        return {"answer": answer, "citations": citations, "abstained": abstained, "stage": "validate"}
+    def specialist_node(name: str):
+        def execute(state: WorkflowState) -> dict[str, Any]:
+            evidence = [RetrievedEvidence.model_validate(item) for item in state.get("evidence", [])]
+            answer, citations, abstained = analyze_incident(
+                state["question"], evidence, list(state.get("messages", []))[:-1], active_provider,
+                specialist=name,
+            )
+            return {"answer": answer, "citations": citations, "abstained": abstained,
+                    "stage": "validate", "specialist_trace": [*state.get("specialist_trace", []), name]}
+        return execute
 
     def citation_node(state: WorkflowState) -> dict[str, Any]:
         evidence = [RetrievedEvidence.model_validate(item) for item in state.get("evidence", [])]
@@ -76,7 +102,8 @@ def build_graph(
         messages.append({"role": "assistant", "content": answer})
         return {
             "answer": answer, "citations": citations, "abstained": abstained,
-            "messages": messages, "specialist_route": "incident_analysis" if not abstained else "citation_validation",
+            "messages": messages,
+            "specialist_trace": [*state.get("specialist_trace", []), "citation_validation"],
             "latency_ms": max(0.0, (perf_counter() - state["started_at"]) * 1000),
             "stage": "done",
         }
@@ -85,16 +112,19 @@ def build_graph(
     workflow.add_node("prepare", prepare)
     workflow.add_node("supervisor", supervisor)
     workflow.add_node("retrieval", retrieval_node)
-    workflow.add_node("incident_analysis", analysis_node)
+    for specialist in ("investigator", "planner", "communicator"):
+        workflow.add_node(specialist, specialist_node(specialist))
     workflow.add_node("citation_validation", citation_node)
     workflow.add_edge(START, "prepare")
     workflow.add_edge("prepare", "supervisor")
     workflow.add_conditional_edges("supervisor", route, {
-        "retrieval": "retrieval", "incident_analysis": "incident_analysis",
+        "retrieval": "retrieval", "investigator": "investigator",
+        "planner": "planner", "communicator": "communicator",
         "citation_validation": "citation_validation",
     })
     workflow.add_edge("retrieval", "supervisor")
-    workflow.add_edge("incident_analysis", "supervisor")
+    for specialist in ("investigator", "planner", "communicator"):
+        workflow.add_edge(specialist, "supervisor")
     workflow.add_edge("citation_validation", END)
     default_checkpointer = MemorySaver(
         serde=JsonPlusSerializer(allowed_msgpack_modules=[("incidentiq.schemas", "RetrievedEvidence")])

@@ -103,7 +103,10 @@ def score(cases: list[dict[str, Any]], predictions: dict[str, dict[str, Any]]) -
                 retrieval_accuracy=expected <= available if expected else not available,
                 citation_validity=bool(citation_ok),
                 abstention=response.abstained == case["abstain"],
-                routing=response.specialist_route == case["expected_route"],
+                routing=(response.specialist_route == case["expected_route"]
+                         and ("specialist_trace" not in record
+                              or (isinstance(record["specialist_trace"], list)
+                                  and case["expected_route"] in record["specialist_trace"]))),
             )
             if "depends_on" in case:
                 previous = predictions.get(case["depends_on"], {})

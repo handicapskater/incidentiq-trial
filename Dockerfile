@@ -14,6 +14,14 @@ COPY scripts ./scripts
 COPY tests/ ./tests/
 
 FROM base AS api
+ENV HF_HOME=/app/model-cache \
+    CHROMA_PATH=/app/data/chroma \
+    DATA_DIR=/app/data \
+    TOKENIZERS_PARALLELISM=false \
+    OMP_NUM_THREADS=2
+RUN python scripts/ingest.py --corpus /app/corpus --chroma-path /app/data/chroma
+ENV HF_HUB_OFFLINE=1 \
+    TRANSFORMERS_OFFLINE=1
 EXPOSE 8000
 CMD ["sh", "-c", "exec uvicorn incidentiq.api:app --host 0.0.0.0 --port ${PORT:-8000}"]
 

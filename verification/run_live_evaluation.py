@@ -17,7 +17,7 @@ INDEX = Path("data/evaluation-chroma")
 COLLECTION = "incidentiq_evaluation"
 
 
-def main() -> None:
+def main(prefix: str = "live_evaluation") -> None:
     chunks = json.loads((ROOT / "reference_chunks.json").read_text())
     index = chromadb.PersistentClient(path=str(INDEX))
     collection = index.get_or_create_collection(COLLECTION, metadata={"hnsw:space": "cosine"})
@@ -50,7 +50,7 @@ def main() -> None:
 
     graph = build_graph(retriever=retrieve)
     predictions = {}
-    path = OUT / "live_evaluation_predictions.jsonl"
+    path = OUT / f"{prefix}_predictions.jsonl"
     with path.open("w") as output:
         for case in load_cases():
             record = {"case_id": case["id"], "thread_id": case["thread_id"]}
@@ -71,7 +71,7 @@ def main() -> None:
             output.flush()
             print(f"{case['id']}: {record.get('error', record.get('response', {}).get('answer'))}", flush=True)
     report = score(load_cases(), predictions)
-    (OUT / "live_evaluation_report.json").write_text(json.dumps(report, indent=2) + "\n")
+    (OUT / f"{prefix}_report.json").write_text(json.dumps(report, indent=2) + "\n")
     print(json.dumps({"metrics": report["metrics"], "latency_ms": report["latency_ms"], "error_count": report["error_count"]}, indent=2))
 
 

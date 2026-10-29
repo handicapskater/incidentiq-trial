@@ -13,5 +13,6 @@ class Settings(BaseSettings):
     DATA_DIR: str = "data"
     GCP_PROJECT: str = "handicapskater-gcp"
     GCP_LOCATION: str = "us-central1"
-    GEMINI_MODEL: str = "gemini-2.5-flash"
+    VERTEX_LOCATION: str = "global"
+    GEMINI_MODEL: str = "gemini-3.5-flash-lite"
     API_URL: str = "http://localhost:8000"

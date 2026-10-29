@@ -2,7 +2,6 @@
 
 import inspect
 import math
-import os
 import re
 from collections.abc import Mapping
 from functools import lru_cache
@@ -52,8 +51,9 @@ def _check_dependencies() -> None:
         if response.json().get("status") != "ok":
             raise RuntimeError("llama.cpp model is not ready")
     elif provider == "gemini":
-        if not os.environ.get("GEMINI_API_KEY"):
-            raise RuntimeError("Gemini API key is missing")
+        from incidentiq.inference import vertex_access_token
+
+        vertex_access_token()
     else:
         raise RuntimeError("Unsupported model provider")
 

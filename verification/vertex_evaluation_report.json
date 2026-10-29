@@ -1,0 +1,192 @@
+{
+  "case_count": 19,
+  "prediction_count": 19,
+  "metrics": {
+    "answer_accuracy": 1.0,
+    "retrieval_accuracy": 0.8947,
+    "citation_validity": 1.0,
+    "abstention": 1.0,
+    "routing": 1.0,
+    "memory": 1.0
+  },
+  "latency_ms": {
+    "mean": 946.17,
+    "p95": 1588.1391250004526
+  },
+  "error_count": 0,
+  "errors": [],
+  "cases": [
+    {
+      "case_id": "exact-01",
+      "category": "exact_retrieval",
+      "answer_accuracy": true,
+      "retrieval_accuracy": true,
+      "citation_validity": true,
+      "abstention": true,
+      "routing": true
+    },
+    {
+      "case_id": "exact-02",
+      "category": "exact_retrieval",
+      "answer_accuracy": true,
+      "retrieval_accuracy": true,
+      "citation_validity": true,
+      "abstention": true,
+      "routing": true
+    },
+    {
+      "case_id": "exact-03",
+      "category": "exact_retrieval",
+      "answer_accuracy": true,
+      "retrieval_accuracy": true,
+      "citation_validity": true,
+      "abstention": true,
+      "routing": true
+    },
+    {
+      "case_id": "multi-01",
+      "category": "multi_document",
+      "answer_accuracy": true,
+      "retrieval_accuracy": true,
+      "citation_validity": true,
+      "abstention": true,
+      "routing": true
+    },
+    {
+      "case_id": "multi-02",
+      "category": "multi_document",
+      "answer_accuracy": true,
+      "retrieval_accuracy": true,
+      "citation_validity": true,
+      "abstention": true,
+      "routing": true
+    },
+    {
+      "case_id": "conflict-01",
+      "category": "conflicting_evidence",
+      "answer_accuracy": true,
+      "retrieval_accuracy": true,
+      "citation_validity": true,
+      "abstention": true,
+      "routing": true
+    },
+    {
+      "case_id": "conflict-02",
+      "category": "conflicting_evidence",
+      "answer_accuracy": true,
+      "retrieval_accuracy": true,
+      "citation_validity": true,
+      "abstention": true,
+      "routing": true
+    },
+    {
+      "case_id": "unsupported-01",
+      "category": "unsupported",
+      "answer_accuracy": true,
+      "retrieval_accuracy": false,
+      "citation_validity": true,
+      "abstention": true,
+      "routing": true
+    },
+    {
+      "case_id": "unsupported-02",
+      "category": "unsupported",
+      "answer_accuracy": true,
+      "retrieval_accuracy": false,
+      "citation_validity": true,
+      "abstention": true,
+      "routing": true
+    },
+    {
+      "case_id": "routing-01",
+      "category": "supervisor_routing",
+      "answer_accuracy": true,
+      "retrieval_accuracy": true,
+      "citation_validity": true,
+      "abstention": true,
+      "routing": true
+    },
+    {
+      "case_id": "routing-02",
+      "category": "supervisor_routing",
+      "answer_accuracy": true,
+      "retrieval_accuracy": true,
+      "citation_validity": true,
+      "abstention": true,
+      "routing": true
+    },
+    {
+      "case_id": "routing-03",
+      "category": "supervisor_routing",
+      "answer_accuracy": true,
+      "retrieval_accuracy": true,
+      "citation_validity": true,
+      "abstention": true,
+      "routing": true
+    },
+    {
+      "case_id": "memory-01",
+      "category": "memory",
+      "answer_accuracy": true,
+      "retrieval_accuracy": true,
+      "citation_validity": true,
+      "abstention": true,
+      "routing": true
+    },
+    {
+      "case_id": "memory-02",
+      "category": "memory",
+      "answer_accuracy": true,
+      "retrieval_accuracy": true,
+      "citation_validity": true,
+      "abstention": true,
+      "routing": true,
+      "memory": true
+    },
+    {
+      "case_id": "citation-01",
+      "category": "citation_validation",
+      "answer_accuracy": true,
+      "retrieval_accuracy": true,
+      "citation_validity": true,
+      "abstention": true,
+      "routing": true
+    },
+    {
+      "case_id": "citation-02",
+      "category": "citation_validation",
+      "answer_accuracy": true,
+      "retrieval_accuracy": true,
+      "citation_validity": true,
+      "abstention": true,
+      "routing": true
+    },
+    {
+      "case_id": "injection-01",
+      "category": "prompt_injection",
+      "answer_accuracy": true,
+      "retrieval_accuracy": true,
+      "citation_validity": true,
+      "abstention": true,
+      "routing": true
+    },
+    {
+      "case_id": "injection-02",
+      "category": "prompt_injection",
+      "answer_accuracy": true,
+      "retrieval_accuracy": true,
+      "citation_validity": true,
+      "abstention": true,
+      "routing": true
+    },
+    {
+      "case_id": "canary-01",
+      "category": "synthetic_canary",
+      "answer_accuracy": true,
+      "retrieval_accuracy": true,
+      "citation_validity": true,
+      "abstention": true,
+      "routing": true
+    }
+  ]
+}

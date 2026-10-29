@@ -40,3 +40,5 @@ LLAMA_URL=http://127.0.0.1:8082 .venv/bin/python -m verification.run_live_evalua
 ```
 
 The evaluator writes responses to `verification/live_evaluation_predictions.jsonl` and metrics to `verification/live_evaluation_report.json`. It indexes the unchanged `evaluation/reference_chunks.json` into a separate local Chroma index. See `RUBRIC.md` for results and remaining gaps.
+
+Cloud Run setup, verification, and persistence limits are in `docs/DEPLOYMENT.md`.

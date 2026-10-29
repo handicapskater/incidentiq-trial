@@ -1,8 +1,9 @@
 """Synchronous inference adapters for local and cloud model APIs."""
 
-import os
 from typing import Protocol
 
+import google.auth
+from google.auth.transport.requests import Request
 import httpx
 
 from incidentiq.config import Settings
@@ -40,30 +41,51 @@ class LlamaProvider:
 
 
 class GeminiProvider:
-    """Call Gemini's generateContent REST API without an additional SDK."""
+    """Call Vertex AI Gemini with Application Default Credentials."""
 
     name = "gemini"
 
-    def __init__(self, model: str, api_key: str | None = None, timeout: float = 120.0):
+    def __init__(self, model: str, project: str, location: str, timeout: float = 120.0):
         self.model = model
-        self.api_key = api_key or os.environ.get("GEMINI_API_KEY")
+        self.project = project
+        self.location = location
         self.timeout = timeout
 
+    def _url(self) -> str:
+        endpoint = "aiplatform.googleapis.com" if self.location == "global" else f"{self.location}-aiplatform.googleapis.com"
+        return (f"https://{endpoint}/v1/projects/{self.project}/locations/{self.location}"
+                f"/publishers/google/models/{self.model}:generateContent")
+
     def generate(self, prompt: str) -> str:
-        if not self.api_key:
-            raise ValueError("GEMINI_API_KEY is required for the Gemini provider")
+        token = vertex_access_token()
         response = httpx.post(
-            f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent",
-            headers={"x-goog-api-key": self.api_key},
-            json={"contents": [{"parts": [{"text": prompt}]}], "generationConfig": {"temperature": 0}},
+            self._url(),
+            headers={"Authorization": f"Bearer {token}"},
+            json={"contents": [{"role": "user", "parts": [{"text": prompt}]}],
+                  "generationConfig": {"temperature": 0, "maxOutputTokens": 512,
+                                       "responseMimeType": "application/json"}},
             timeout=self.timeout,
         )
         response.raise_for_status()
-        return "".join(
+        content = "".join(
             part.get("text", "")
             for candidate in response.json()["candidates"]
             for part in candidate["content"]["parts"]
+            if not part.get("thought", False)
         )
+        if not content.strip():
+            raise ValueError("Vertex AI returned no text")
+        return content
+
+
+def vertex_access_token() -> str:
+    """Resolve Cloud Run's service identity; never use a stored API key."""
+    credentials, _ = google.auth.default(scopes=["https://www.googleapis.com/auth/cloud-platform"])
+    if not credentials.valid:
+        credentials.refresh(Request())
+    if not credentials.token:
+        raise RuntimeError("Vertex AI credentials have no access token")
+    return credentials.token
 
 
 def get_provider(settings: Settings | None = None) -> InferenceProvider:
@@ -72,5 +94,5 @@ def get_provider(settings: Settings | None = None) -> InferenceProvider:
     if name == "llama":
         return LlamaProvider(settings.LLAMA_URL)
     if name == "gemini":
-        return GeminiProvider(settings.GEMINI_MODEL)
+        return GeminiProvider(settings.GEMINI_MODEL, settings.GCP_PROJECT, settings.VERTEX_LOCATION)
     raise ValueError(f"Unsupported MODEL_PROVIDER: {settings.MODEL_PROVIDER}")
